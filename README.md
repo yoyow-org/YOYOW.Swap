@@ -1,2 +1,2 @@
 # YOYOW.Swap
-YOYOW基金会推出的第一个DeFi项目为YOYOW.Swap，YOYOW.Swap项目类似于以太坊网络上的Uniswap，是部署在YOYOW网络上的自动化闪兑服务。YOYOW.Swap将会促进YOYOW区块链上的由用户发行的智能内容代币之间的流通。YOYOW.Swap使用自动做市商(Automatic Market Maker)算法，为用户提供高效，低滑点且简易使用的去中心化自动闪兑交易服务，YOYOW.Swap允许用户自由创建交易对和为交易对提供流动性并借此赚取流动性奖励。
+YOYOW.Swap是YOYOW基金会推出的第一个DeFi项目，YOYOW.Swap项目类似于以太坊网络上的Uniswap，是部署在YOYOW网络上的自动化闪兑服务。YOYOW.Swap将会促进YOYOW区块链上的由用户发行的智能内容代币之间的流通。YOYOW.Swap使用自动做市商(Automatic Market Maker)算法，为用户提供高效，低滑点且简易使用的去中心化自动闪兑交易服务，YOYOW.Swap允许用户自由创建交易对和为交易对提供流动性并借此赚取流动性奖励。
