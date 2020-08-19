@@ -2,9 +2,11 @@
 #include <graphenelib/dispatcher.hpp>
 #include <graphenelib/multi_index.hpp>
 #include <graphenelib/print.hpp>
+#include <algorithm> 
 
 using namespace graphene;
 
+#define SWAP_STATUS_TABLE_ROW_ID 0
 uint64_t sqrt(uint64_t y)
 {
 	uint64_t z;
@@ -25,11 +27,25 @@ class swap : public contract
 {
   public:
     swap(uint64_t id)
-        : contract(id)
+        : contract(id),
+        _status(_self,_self)
     {
     }
 
-    //@abi action
+	//@abi action
+	void initialize()
+	{
+		graphene_assert(get_trx_sender() == _self, "only owner can initialize contract");
+		graphene_assert(_status.find(SWAP_STATUS_TABLE_ROW_ID) == _status.end(), "already initialized!");
+		_status.emplace(0, [&](auto &o) {
+			o.id = SWAP_STATUS_TABLE_ROW_ID;
+            o.feeTo = 0;
+            o.feeToSetter = 0;
+			o.paircount = 0;
+        });	
+	}
+
+	//@abi action    
     void createpair(const uint64_t& tokenA, const uint64_t& tokenB)
     {
 		graphene_assert(tokenA != tokenB, "same token");
@@ -64,11 +80,25 @@ class swap : public contract
     //@abi action
     void setfeeto(const uint64_t& feeto)
     {
+		auto itr = _status.find(SWAP_STATUS_TABLE_ROW_ID);
+		graphene_assert(itr != _status.end(), "contract not initialized!");
+
+
+		_status.modify(itr, 0, [&](auto &o) {
+            o.feeTo += feeto;
+        });
     }
     
 	//@abi action
     void setfeetosetter(const uint64_t& feetosetter)
 	{
+		auto itr = _status.find(SWAP_STATUS_TABLE_ROW_ID);
+		graphene_assert(itr != _status.end(), "contract not initialized!");
+
+
+		_status.modify(itr, 0, [&](auto &o) {
+            o.feeToSetter += feetosetter;
+        });
 	}
 
   private:
@@ -89,13 +119,46 @@ class swap : public contract
 
         uint64_t primary_key() const { return token1; }
 
+		uint64_t mint(uint64_t to);
+
+		pair<uint64_t,uint64_t> burn(uint64_t to);
+
+		void swap(uint64_t amount0Out, uint64_t amount1Out, uint64_t to, std::vector<unsigned char> data);
+
       
         GRAPHENE_SERIALIZE(swap_pair, (factory)(token0)(token1)(reserve0)(reserve1)(blockTimestampLast)(price0CumulativeLast)(price1CumulativeLast)(kLast))
     };
 
     typedef multi_index<N(swappair), swap_pair>  swap_pair_index;
 
+	const swap_pair& get_pair(uint64_t token0,uint64_t token1)
+	{
+		if(token0 > token1)
+			std::swap(token0,token1);
+		
+		swap_pair_index pairs(_self,token0);
+		auto itr = pairs.find(token1);
+		graphene_assert(itr != pairs.end(),"pair not exists");
+		return *itr;
+	}
+
 	
+    //@abi table
+    struct swap_status {
+    	uint64_t id;
+        uint64_t feeTo;
+		uint64_t feeToSetter;
+		uint32_t paircount;
+
+        uint64_t primary_key() const { return id; }
+
+      
+        GRAPHENE_SERIALIZE(swap_status, (id)(feeTo)(feeToSetter)(paircount))
+    };
+
+    typedef multi_index<N(swapstatus), swap_status>  swap_status_index;
+
+	swap_status_index _status;
 
     
 };
