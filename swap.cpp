@@ -6,7 +6,8 @@
 
 using namespace graphene;
 
-#define SWAP_STATUS_TABLE_ROW_ID 0
+#define SWAP_PARAM_TABLE_ROW_ID  0
+
 uint64_t sqrt(uint64_t y)
 {
 	uint64_t z;
@@ -28,20 +29,18 @@ class swap : public contract
   public:
     swap(uint64_t id)
         : contract(id),
-        _status(_self,_self)
+        _factories(_self,_self),
+        _param(_self,_self)
     {
     }
 
 	//@abi action
-	void initialize()
+	void initialize(uint64_t asset)
 	{
 		graphene_assert(get_trx_sender() == _self, "only owner can initialize contract");
-		graphene_assert(_status.find(SWAP_STATUS_TABLE_ROW_ID) == _status.end(), "already initialized!");
-		_status.emplace(0, [&](auto &o) {
-			o.id = SWAP_STATUS_TABLE_ROW_ID;
-            o.feeTo = 0;
-            o.feeToSetter = 0;
-			o.paircount = 0;
+		graphene_assert(_param.find(SWAP_PARAM_TABLE_ROW_ID) == _param.end(), "already initialized!");
+		_param.emplace(0, [&](auto &o) {
+			o.swap_asset = asset;
         });	
 	}
 
@@ -74,36 +73,48 @@ class swap : public contract
 			o.price0CumulativeLast = 0;
 			o.price1CumulativeLast = 0;
 			o.kLast = 0;
-        });		
+        });	
+
+
+		auto itr = _factories.find(SWAP_PARAM_TABLE_ROW_ID);
+		graphene_assert(itr != _factories.end(), "contract not initialized!");
+
+
+		_factories.modify(itr, 0, [&](auto &o) {
+            o.paircount += 1;
+        });
 	}
 	
     //@abi action
-    void setfeeto(const uint64_t& feeto)
+    void setfeeto( const uint64_t& feeto)
     {
-		auto itr = _status.find(SWAP_STATUS_TABLE_ROW_ID);
-		graphene_assert(itr != _status.end(), "contract not initialized!");
+		const uint64_t& factory = get_trx_sender();
+		
+		auto itr = _factories.find(factory);
+		graphene_assert(itr != _factories.end(), "can't find factory");
 
-
-		_status.modify(itr, 0, [&](auto &o) {
+		_factories.modify(itr, 0, [&](auto &o) {
             o.feeTo += feeto;
         });
     }
     
 	//@abi action
-    void setfeetosetter(const uint64_t& feetosetter)
+    void setfeetosetter(const uint64_t& factory,const uint64_t& feetosetter)
 	{
-		auto itr = _status.find(SWAP_STATUS_TABLE_ROW_ID);
-		graphene_assert(itr != _status.end(), "contract not initialized!");
+		const uint64_t& factory = get_trx_sender();
+		
+		auto itr = _factories.find(factory);
+		graphene_assert(itr != _factories.end(), "can't find factory");
 
 
-		_status.modify(itr, 0, [&](auto &o) {
+		_factories.modify(itr, 0, [&](auto &o) {
             o.feeToSetter += feetosetter;
         });
 	}
 
   private:
     //@abi table
-    struct swap_pair {
+    struct swap_pair_t {
         uint64_t factory;
 		uint64_t token0;
 		uint64_t token1;
@@ -121,17 +132,23 @@ class swap : public contract
 
 		uint64_t mint(uint64_t to);
 
+
 		pair<uint64_t,uint64_t> burn(uint64_t to);
 
-		void swap(uint64_t amount0Out, uint64_t amount1Out, uint64_t to, std::vector<unsigned char> data);
+		void swap(uint64_t amount0Out, uint64_t amount1Out, uint64_t to, std::vector<unsigned char> data)
+		{
+
+			graphene_assert(amount0Out > 0 || amount1Out > 0, "INSUFFICIENT_OUTPUT_AMOUNT");
+			graphene_assert(amount0Out < reserve0 && amount1Out < reserve1, "INSUFFICIENT_LIQUIDITY");
+		}
 
       
-        GRAPHENE_SERIALIZE(swap_pair, (factory)(token0)(token1)(reserve0)(reserve1)(blockTimestampLast)(price0CumulativeLast)(price1CumulativeLast)(kLast))
+        GRAPHENE_SERIALIZE(swap_pair_t, (factory)(token0)(token1)(reserve0)(reserve1)(blockTimestampLast)(price0CumulativeLast)(price1CumulativeLast)(kLast))
     };
 
-    typedef multi_index<N(swappair), swap_pair>  swap_pair_index;
+    typedef multi_index<N(swappair), swap_pair_t>  swap_pair_index;
 
-	const swap_pair& get_pair(uint64_t token0,uint64_t token1)
+	const swap_pair_t& get_pair(uint64_t token0,uint64_t token1)
 	{
 		if(token0 > token1)
 			std::swap(token0,token1);
@@ -144,22 +161,36 @@ class swap : public contract
 
 	
     //@abi table
-    struct swap_status {
-    	uint64_t id;
+    struct factory_t {
+    	uint64_t factory;
         uint64_t feeTo;
 		uint64_t feeToSetter;
 		uint32_t paircount;
 
-        uint64_t primary_key() const { return id; }
+        uint64_t primary_key() const { return factory; }
 
       
-        GRAPHENE_SERIALIZE(swap_status, (id)(feeTo)(feeToSetter)(paircount))
+        GRAPHENE_SERIALIZE(factory_t, (factory)(feeTo)(feeToSetter)(paircount))
     };
 
-    typedef multi_index<N(swapstatus), swap_status>  swap_status_index;
+    typedef multi_index<N(factory), factory_t>  factory_index;
 
-	swap_status_index _status;
+	factory_index _factories;
 
+
+	//@abi table
+    struct param_t {
+    	uint64_t swap_asset;
+
+        uint64_t primary_key() const { return swap_asset; }
+
+      
+        GRAPHENE_SERIALIZE(param_t, (swap_asset))
+    };
+
+    typedef multi_index<N(param), param_t>  param_index;
+
+	param_index _param;
     
 };
 
