@@ -6,29 +6,7 @@
 #define DEFI_TYPE_LIQUIDITY 0
 #define DEFI_TYPE_SWAP 1
 
-double _SWAP_FEE_RATE = 0.001;
-
-string to_hex(const char *d, uint32_t s)
-{
-    std::string r;
-    const char *to_hex = "0123456789abcdef";
-    uint8_t *c = (uint8_t *)d;
-    for (uint32_t i = 0; i < s; ++i)
-        (r += to_hex[(c[i] >> 4)]) += to_hex[(c[i] & 0x0f)];
-    return r;
-}
-
-uint64_t uint64_hash(const string &hash)
-{
-    return std::hash<string>{}(hash);
-}
-
-uint64_t uint64_hash(const uint64_t& a,const uint64_t& b)
-{
-	string  tmp = to_hex((const char*)&a,8);
-	tmp +=to_hex((const char*)&b,8);
-    return uint64_hash(tmp);
-}
+const double _SWAP_FEE_RATE = 0.001;
 
 
 //@abi action
