@@ -546,5 +546,4 @@ void swaptoken::_transfer(const uint64_t& from,const uint64_t& to, const uint64_
     add_balance( to, coin_code,amount,rampayer);
 }
 
-
-GRAPHENE_ABI(swaptoken, (newliquidity)(addliquidity)(subliquidity)(doswap)(removelog)(updateweight))
+GRAPHENE_ABI(swaptoken,(createtk)(issuetk)(retiretk)(transfertk)(newliquidity)(addliquidity)(subliquidity)(doswap)(removelog)(updateweight))
