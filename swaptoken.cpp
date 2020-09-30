@@ -10,75 +10,79 @@ const double _SWAP_FEE_RATE = 0.001;
 
 
 //@abi action
-void swaptoken::createtk( const uint64_t& issuer,const contract_asset&  maximum_supply,const name& tkname,const uint8_t& precision)
+void swaptoken::createtk( const uint64_t& issuer,const uint64_t& asset_id,const int64_t& maximum_supply,const name& tkname,const uint8_t& precision)
 {
+    print(issuer);
+    print(asset_id);
+    print(maximum_supply);
 	graphene_assert( get_trx_sender() == issuer,"can't create token to other user" );
 
-    graphene_assert( maximum_supply.asset_id > 10000, "token asset id must bigger than 10000" );
-    graphene_assert( maximum_supply.amount > 0, "max-supply must be positive");
+    graphene_assert( asset_id > 10000, "token asset id must bigger than 10000" );
+    graphene_assert( maximum_supply > 0, "max-supply must be positive");
 
-    stats statstable( _self, maximum_supply.asset_id );
-    auto existing = statstable.find( maximum_supply.asset_id );
+    stats statstable( _self, _self );
+    auto existing = statstable.find( asset_id );
     graphene_assert( existing == statstable.end(), "token with asset id already exists" );
 
     statstable.emplace( issuer, [&]( auto& s ) {
-       s.max_supply    = maximum_supply;
-	   s.supply = contract_asset(0, maximum_supply.asset_id);
-	   s.tkname = tkname;
-	   s.precision = precision;
-       s.issuer  = issuer;
+        s.asset_id = asset_id;
+        s.max_supply = maximum_supply;
+        s.supply = 0;
+        s.tkname = tkname;
+        s.precision = precision;
+        s.issuer  = issuer;
     });
 }
 
 //@abi action
-void swaptoken::issuetk( const uint64_t& to, const contract_asset& quantity, const string& memo )
+void swaptoken::issuetk( const uint64_t& to,const uint64_t& asset_id, const int64_t& quantity, const string& memo )
 {
 	graphene_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
-	stats statstable(_self, quantity.asset_id );
-	auto existing = statstable.find( quantity.asset_id);
+	stats statstable(_self, asset_id );
+	auto existing = statstable.find( asset_id);
 	graphene_assert( existing != statstable.end(), "token with symbol does not exist, create token before issue" );
 	const auto& st = *existing;
 	graphene_assert( to == st.issuer, "tokens can only be issued to issuer account" );
 
 	graphene_assert( get_trx_sender() == st.issuer ,"invalid authority" );
-	graphene_assert( quantity.amount > 0, "must issue positive quantity" );
+	graphene_assert( quantity > 0, "must issue positive quantity" );
 
-	graphene_assert( quantity.amount <= st.max_supply.amount - st.supply.amount, "quantity exceeds available supply");
+	graphene_assert( quantity <= st.max_supply - st.supply, "quantity exceeds available supply");
 
 	statstable.modify( st, 0, [&]( auto& s ) {
 	   s.supply += quantity;
 	});
 
-	add_balance( st.issuer, quantity, st.issuer );
+	add_balance( st.issuer,asset_id,quantity, st.issuer );
 }
 
 //@abi action
-void swaptoken::retiretk( const contract_asset& quantity, const string& memo )
+void swaptoken::retiretk( const uint64_t& asset_id, const int64_t& quantity, const string& memo )
 {
 	graphene_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
-	stats statstable( _self, quantity.asset_id );
-	auto existing = statstable.find( quantity.asset_id );
+	stats statstable( _self, asset_id );
+	auto existing = statstable.find( asset_id );
 	graphene_assert( existing != statstable.end(), "token with symbol does not exist" );
 	const auto& st = *existing;
 
 	graphene_assert( get_trx_sender() == st.issuer ,"invalid authority" );
-	graphene_assert( quantity.amount > 0, "must retire positive quantity" );
+	graphene_assert( quantity > 0, "must retire positive quantity" );
 
 
 	statstable.modify( st, 0, [&]( auto& s ) {
 	   s.supply -= quantity;
 	});
 
-	sub_balance( st.issuer, quantity );
+	sub_balance( st.issuer,asset_id,quantity );
 }
-
 
 //@abi action
 void swaptoken::transfertk( const uint64_t&    from,
                     const uint64_t&    to,
-                    const contract_asset&   quantity,
+                    const uint64_t& asset_id,
+                    const int64_t& quantity,
                     const string&  memo )
 {
     graphene_assert( from != to, "cannot transfer to self" );
@@ -87,41 +91,41 @@ void swaptoken::transfertk( const uint64_t&    from,
 	char toname[32];	
     graphene_assert( get_account_name_by_id(toname,32,to) != -1, "to account does not exist");
 	
-    stats statstable( _self, quantity.asset_id );
-    const auto& st = statstable.get( quantity.asset_id );
+    stats statstable( _self, asset_id );
+    const auto& st = statstable.get( asset_id );
 
-    graphene_assert( quantity.amount > 0, "must transfer positive quantity" );
+    graphene_assert( quantity > 0, "must transfer positive quantity" );
     graphene_assert( memo.size() <= 256, "memo has more than 256 bytes" );
 
     auto payer = from;
 
-    sub_balance( from, quantity );
-    add_balance( to, quantity, payer );
+    sub_balance( from,asset_id,quantity );
+    add_balance( to,asset_id,quantity, payer );
 }                    
 
 
-void swaptoken::sub_balance( const uint64_t& owner, const contract_asset& value ) {
+void swaptoken::sub_balance( const uint64_t& owner, const uint64_t& asset_id, const int64_t& value ) {
    accounts from_acnts( _self, owner );
 
-   const auto& from = from_acnts.get( value.asset_id, "no balance object found" );
-   graphene_assert( from.balance.amount >= value.amount, "overdrawn balance" );
+   const auto& from = from_acnts.get( asset_id, "no balance object found" );
+   graphene_assert( from.amount >= value, "overdrawn balance" );
 
    from_acnts.modify( from, owner, [&]( auto& a ) {
-		 a.balance -= value;
+		 a.amount -= value;
 	  });
 }
 
-void swaptoken::add_balance( const uint64_t& owner, const contract_asset& value, const uint64_t& ram_payer )
+void swaptoken::add_balance( const uint64_t& owner, const uint64_t& asset_id, const int64_t& value, const uint64_t& ram_payer )
 {
    accounts to_acnts( _self, owner );
-   auto to = to_acnts.find( value.asset_id );
+   auto to = to_acnts.find( asset_id );
    if( to == to_acnts.end() ) {
 	  to_acnts.emplace( ram_payer, [&]( auto& a ){
-		a.balance = value;
+        a.amount = value;
 	  });
    } else {
 	  to_acnts.modify( to, 0, [&]( auto& a ) {
-		a.balance += value;
+        a.amount += value;
 	  });
    }
 }
@@ -133,7 +137,7 @@ const uint64_t swaptoken::get_balance(const uint64_t& account, const uint64_t& a
     if( itr == acnts.end() )
         return 0;
     else
-        return itr->balance.amount;
+        return itr->amount;
 }
 
 const bool  swaptoken::token_exist(const uint64_t& token)const
@@ -313,7 +317,7 @@ void swaptoken::addliquidity(const uint64_t& account, const uint64_t& tokenA,con
     
     liquidity_token += myliquidity_token;
 
-    auto pool_index = _defi_pool.get_index<N("byaccountkey")>();
+    auto pool_index = _defi_pool.get_index<N(accountkey)>();
     auto pool_itr = pool_index.find(account);
     bool haspool = false;
     while (pool_itr != pool_index.end() && (pool_itr->account == account))
@@ -390,7 +394,7 @@ void swaptoken::subliquidity(const uint64_t& account,const uint64_t& tokenA,cons
     auto defi_liquidity = _defi_liquidity.find(liquidity_id);
     graphene_assert(defi_liquidity != _defi_liquidity.end(), "Liquidity does not exist");
 
-    auto pool_index = _defi_pool.get_index<N("byaccountkey")>();
+    auto pool_index = _defi_pool.get_index<N(accountkey)>();
     auto pool_itr = pool_index.find(account);
     bool haspool = false;
     while (pool_itr != pool_index.end() && (pool_itr->account == account))
@@ -538,8 +542,8 @@ void swaptoken::removelog(const uint64_t& type, const uint64_t& count)
 
 void swaptoken::_transfer(const uint64_t& from,const uint64_t& to, const uint64_t& amount, const uint64_t& coin_code, const uint64_t& rampayer)
 {
-    sub_balance( from, contract_asset(amount,coin_code) );
-    add_balance( to, contract_asset(amount,coin_code),rampayer);
+    sub_balance( from, coin_code,amount);
+    add_balance( to, coin_code,amount,rampayer);
 }
 
 

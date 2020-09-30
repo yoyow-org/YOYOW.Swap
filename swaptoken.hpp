@@ -47,130 +47,22 @@ public:
 
           };
 
-    struct  st_defi_liquidity
-    {
-        uint64_t token1;
-        uint64_t token2;
-
-        uint64_t quantity1 = 0;
-        uint64_t quantity2 = 0;
-        uint64_t liquidity_token;
-        double price1 = 0.0;
-        double price2 = 0.0;
-        uint64_t cumulative1 = 0;
-        uint64_t cumulative2 = 0;
-        double swap_weight = 0.0;
-        double liquidity_weight = 0.0;
-        uint64_t timestamp;
-
-        uint64_t primary_key() const { return uint64_hash(token1,token2); }
-    };
-
-    typedef multi_index<N("liquidity"), st_defi_liquidity> tb_defi_liquidity;
-
-    struct st_defi_pool
-    {
-        uint64_t pool_id;
-        uint64_t liquidity_id;
-        uint64_t account;
-        uint64_t token1;
-        uint64_t token2;
-        uint64_t liquidity_token;
-        uint64_t quantity1;
-        uint64_t quantity2;
-        uint64_t timestamp;
-
-        uint64_t primary_key() const { return pool_id; }
-        uint64_t account_key() const { return account; }
-    };
-
-    typedef multi_index<N("defipool"), st_defi_pool,
-                        indexed_by<N("byaccountkey"), const_mem_fun<st_defi_pool, uint64_t, &st_defi_pool::account_key>>>
-        tb_defi_pool;
-
-    struct  st_liquidity_log
-    {
-        uint64_t log_id;
-        uint64_t account;
-        uint64_t liquidity_id;
-        uint64_t liquidity_token;
-        uint64_t in_token;
-        uint64_t out_token;
-        uint64_t in_asset;
-        uint64_t out_asset;
-        string type;
-        uint64_t timestamp;
-
-        uint64_t primary_key() const { return log_id; }
-    };
-
-    typedef multi_index<N("recordlog"), st_liquidity_log> tb_liquidity_log;
-
-    struct  st_swap_log
-    {
-        uint64_t swap_id;
-        uint64_t third_id;
-        uint64_t account;
-        uint64_t liquidity_id;
-        uint64_t in_token;
-        uint64_t out_token;
-        uint64_t in_asset;
-        uint64_t out_asset;
-        double   price;
-        uint64_t timestamp;
-
-        uint64_t primary_key() const { return swap_id; }
-        uint64_t third_key() const { return third_id; }
-    };
-
-    typedef multi_index<N("swaplog"), st_swap_log,
-                        indexed_by<N("bythirdkey"), const_mem_fun<st_swap_log, uint64_t, &st_swap_log::third_key>>>
-        tb_swap_log;
-    
-    //contract token tables
-	struct account {
-        contract_asset    balance;
-
-        uint64_t primary_key()const { return balance.asset_id; }
-     };
-
-     struct  currency_stats {
-        contract_asset    supply;
-        contract_asset    max_supply;
-        uint8_t			  precision;
-		name 			  tkname;
-        uint64_t     issuer;
-
-        uint64_t primary_key()const { return supply.asset_id; }
-
-		GRAPHENE_SERIALIZE(currency_stats, (supply)(max_supply)(precision)(tkname)(issuer))
-     };
-
-     typedef multi_index< N(accounts), account > accounts;
-     typedef multi_index< N(stat), currency_stats > stats;
-
-     void sub_balance( const uint64_t& owner, const contract_asset& value );
-     void add_balance( const uint64_t& owner, const contract_asset& value, const uint64_t& ram_payer );
-
-public:
 		
-		//@abi action
-	void createtk( const uint64_t&   issuer,const contract_asset&  maximum_supply,const name& tkname,const uint8_t& precision);
+	//@abi action
+	void createtk( const uint64_t& issuer,const uint64_t& asset_id,const int64_t& maximum_supply,const name& tkname,const uint8_t& precision);
 
 	//@abi action
-	void issuetk( const uint64_t& to, const contract_asset& quantity, const string& memo );
+	void issuetk( const uint64_t& to,const uint64_t& asset_id, const int64_t& quantity, const string& memo );
 
 	//@abi action
-	void retiretk( const contract_asset& quantity, const string& memo );
+	void retiretk( const uint64_t& asset_id, const int64_t& quantity, const string& memo );
 
 	//@abi action
 	void transfertk( const uint64_t&    from,
-                        const uint64_t&    to,
-                        const contract_asset&   quantity,
-                        const string&  memo );
-
-    const bool      token_exist(const uint64_t& token)const;
-    const uint64_t get_balance(const uint64_t& account, const uint64_t& asset_type)const;
+                    const uint64_t&    to,
+                    const uint64_t& asset_id,
+                    const int64_t& quantity,
+                    const string&  memo );
                         
 //@abi action
     void newliquidity(const uint64_t& account, const uint64_t& tokenA, const uint64_t& tokenB);
@@ -194,11 +86,127 @@ public:
 
 private:
     void _transfer(const uint64_t& from,const uint64_t& to, const uint64_t& amount, const uint64_t& coin_code, const uint64_t& rampayer);
-    
-public:
-    static uint64_t code;
+    const bool      token_exist(const uint64_t& token)const;
+    const uint64_t get_balance(const uint64_t& account, const uint64_t& asset_type)const;
+    void sub_balance( const uint64_t& owner, const uint64_t& asset_id, const int64_t& value );
+    void add_balance( const uint64_t& owner, const uint64_t& asset_id, const int64_t& value, const uint64_t& ram_payer );
 
 private:
+
+     //@abi table dfliquidity
+    struct  dfliquidity
+    {
+        uint64_t token1;
+        uint64_t token2;
+
+        uint64_t quantity1 = 0;
+        uint64_t quantity2 = 0;
+        uint64_t liquidity_token;
+        double price1 = 0.0;
+        double price2 = 0.0;
+        uint64_t cumulative1 = 0;
+        uint64_t cumulative2 = 0;
+        double swap_weight = 0.0;
+        double liquidity_weight = 0.0;
+        uint64_t timestamp;
+
+        uint64_t primary_key() const { return uint64_hash(token1,token2); }
+
+        GRAPHENE_SERIALIZE(dfliquidity, (token1)(token2)(quantity1)(quantity2)(liquidity_token)(price1)(price2)(cumulative1)(cumulative2)(swap_weight)(liquidity_weight)(timestamp))
+    };
+
+    typedef multi_index<N(liquidity), dfliquidity> tb_defi_liquidity;
+
+    //@abi table st_defi_pool
+    struct st_defi_pool
+    {
+        uint64_t pool_id;
+        uint64_t liquidity_id;
+        uint64_t account;
+        uint64_t token1;
+        uint64_t token2;
+        uint64_t liquidity_token;
+        uint64_t quantity1;
+        uint64_t quantity2;
+        uint64_t timestamp;
+
+        uint64_t primary_key() const { return pool_id; }
+        uint64_t account_key() const { return account; }
+    };
+
+    typedef multi_index<N(defipool), st_defi_pool,
+                        indexed_by<N(accountkey), const_mem_fun<st_defi_pool, uint64_t, &st_defi_pool::account_key>>>
+        tb_defi_pool;
+
+
+    //@abi table liquiditylog
+    struct  liquiditylog
+    {
+        uint64_t log_id;
+        uint64_t account;
+        uint64_t liquidity_id;
+        uint64_t liquidity_token;
+        uint64_t in_token;
+        uint64_t out_token;
+        uint64_t in_asset;
+        uint64_t out_asset;
+        string type;
+        uint64_t timestamp;
+
+        uint64_t primary_key() const { return log_id; }
+    };
+
+    typedef multi_index<N(recordlog), liquiditylog> tb_liquidity_log;
+
+    //@abi table st_swap_log
+    struct  st_swap_log
+    {
+        uint64_t swap_id;
+        uint64_t third_id;
+        uint64_t account;
+        uint64_t liquidity_id;
+        uint64_t in_token;
+        uint64_t out_token;
+        uint64_t in_asset;
+        uint64_t out_asset;
+        double   price;
+        uint64_t timestamp;
+
+        uint64_t primary_key() const { return swap_id; }
+    };
+
+    typedef multi_index<N(swaplog), st_swap_log> tb_swap_log;
+
+    //@abi table account
+	struct account {
+	    int64_t     amount;
+        uint64_t    asset_id; 
+
+        uint64_t primary_key()const { return asset_id; }
+     };
+    typedef multi_index<N(account), account> accounts;
+    
+
+    //@abi table currencystat
+     struct  currencysta {
+        uint64_t        asset_id;
+        int64_t    supply;
+        int64_t    max_supply;
+        uint8_t			  precision;
+		name 			  tkname;
+        uint64_t     issuer;
+
+        uint64_t primary_key()const { return asset_id; }
+
+		//GRAPHENE_SERIALIZE(currencysta, (supply)(max_supply)(precision)(tkname)(issuer))
+     }; 
+    
+     typedef multi_index< N(stat), currencysta > stats;
+
+     
+
+     
+    
     tb_defi_liquidity _defi_liquidity;
     tb_defi_pool _defi_pool;
 
