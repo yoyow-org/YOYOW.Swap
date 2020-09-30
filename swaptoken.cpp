@@ -210,9 +210,9 @@ void swaptoken::doswap(const uint64_t& account,const uint64_t& tokenA,const uint
 
     uint64_t liquidity_id = 0;
     if(tokenA > tokenB)
-        liquidity_id = uint64_hash(tokenA,tokenB);
-    else
         liquidity_id = uint64_hash(tokenB,tokenA);
+    else
+        liquidity_id = uint64_hash(tokenA,tokenB);
 
     auto defi_liquidity = _defi_liquidity.find(liquidity_id);
     graphene_assert(defi_liquidity != _defi_liquidity.end(), "Liquidity does not exist");
@@ -248,6 +248,7 @@ void swaptoken::doswap(const uint64_t& account,const uint64_t& tokenA,const uint
         });
     }
 
+    _transfer(account,_self,quantityA,tokenA, account);
     _transfer(_self,account,quantityB,tokenB, account);
 
     double price = (1.0 * quantityB) / quantityA;
