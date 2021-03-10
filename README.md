@@ -10,69 +10,76 @@ gxx -g swaptoken.abi swaptoken.cpp
 gxx -o swaptoken.wast swaptoken.cpp
 
 1,布置合约（先将步骤0编译的swaptoken.abi和swaptoken.wasm拷贝至yoyow_client所在目录的swaptoken子目录内）
-deploy_contract "testcont" 28182  316049304  0 0 ./swaptoken false true
+deploy_contract 28182  0 0 ./swaptoken false true
 
 2,创建2种token
-call_contract  28182  316049304  null createtk  "{\"issuer\":\"28182\", \"asset_id\":\"10001\",\"maximum_supply\":\"1000000\",\"tkname\":\"asset1\",\"precision\":\"8\"}" false true
-call_contract  28182  316049304  null createtk  "{\"issuer\":\"28182\", \"asset_id\":\"10002\",\"maximum_supply\":\"1000000\",\"tkname\":\"asset2\",\"precision\":\"8\"}" false true
+call_contract  28182  28182  null createtk  "{\"issuer\":\"28182\", \"asset_id\":\"10001\",\"maximum_supply\":\"1000000\",\"tkname\":\"asset1\",\"precision\":\"8\"}" false true
+call_contract  28182  28182  null createtk  "{\"issuer\":\"28182\", \"asset_id\":\"10002\",\"maximum_supply\":\"1000000\",\"tkname\":\"asset2\",\"precision\":\"8\"}" false true
 
 3,发行2种token
-call_contract  28182  316049304  null issuetk  "{\"to\":\"28182\", \"asset_id\":\"10001\",\"quantity\":\"100000\",\"memo\":\"testmemo\"}" false true
-call_contract  28182  316049304  null issuetk  "{\"to\":\"28182\", \"asset_id\":\"10002\",\"quantity\":\"100000\",\"memo\":\"testmemo\"}" false true
+call_contract  28182  28182  null issuetk  "{\"to\":\"28182\", \"asset_id\":\"10001\",\"quantity\":\"100000\",\"memo\":\"testmemo\"}" false true
+call_contract  28182  28182  null issuetk  "{\"to\":\"28182\", \"asset_id\":\"10002\",\"quantity\":\"100000\",\"memo\":\"testmemo\"}" false true
 
 4,转账token
-call_contract  28182  316049304  null transfertk  "{\"from\":\"28182\",\"to\":\"27662\", \"asset_id\":\"10001\",\"quantity\":\"10000\",\"memo\":\"testmemo1\"}" false true
-call_contract  28182  316049304  null transfertk  "{\"from\":\"28182\",\"to\":\"27447\", \"asset_id\":\"10001\",\"quantity\":\"10000\",\"memo\":\"testmemo1\"}" false true
+call_contract  28182  28182  null transfertk  "{\"from\":\"28182\",\"to\":\"27662\", \"asset_id\":\"10001\",\"quantity\":\"10000\",\"memo\":\"testmemo1\"}" false true
+call_contract  28182  28182  null transfertk  "{\"from\":\"28182\",\"to\":\"27447\", \"asset_id\":\"10001\",\"quantity\":\"10000\",\"memo\":\"testmemo1\"}" false true
 
-call_contract  28182  316049304  null transfertk  "{\"from\":\"28182\",\"to\":\"27662\", \"asset_id\":\"10002\",\"quantity\":\"10000\",\"memo\":\"testmemo2\"}" false true
-call_contract  28182  316049304  null transfertk  "{\"from\":\"28182\",\"to\":\"27447\", \"asset_id\":\"10002\",\"quantity\":\"10000\",\"memo\":\"testmemo2\"}" false true
+call_contract  28182  28182  null transfertk  "{\"from\":\"28182\",\"to\":\"27662\", \"asset_id\":\"10002\",\"quantity\":\"10000\",\"memo\":\"testmemo2\"}" false true
+call_contract  28182  28182  null transfertk  "{\"from\":\"28182\",\"to\":\"27447\", \"asset_id\":\"10002\",\"quantity\":\"10000\",\"memo\":\"testmemo2\"}" false true
 
 
 5,创建交易对
-call_contract  27662  316049304  null newliquidity  "{\"account\":\"27662\",\"tokenA\":\"10001\",\"tokenB\":\"10002\"}" false true
+call_contract  27662  28182  null newliquidity  "{\"account\":\"27662\",\"tokenA\":\"10001\",\"tokenB\":\"10002\"}" false true
 
 
 6,加入流动性
-call_contract  27662  316049304  null addliquidity  "{\"account\":\"27662\",\"tokenA\":\"10001\",\"tokenB\":\"10002\",\"quantityA\":\"1000\",\"quantityB\":\"1000\"}" false true
+call_contract  27662  28182  null addliquidity  "{\"account\":\"27662\",\"tokenA\":\"10001\",\"tokenB\":\"10002\",\"quantityA\":\"1000\",\"quantityB\":\"1000\"}" false true
 
 
 7,退出流动性
-call_contract  27662  316049304  null subliquidity  "{\"account\":\"27662\",\"tokenA\":\"10001\",\"tokenB\":\"10002\",\"liquidity_token\":\"100\"}" false true
+call_contract  27662  28182  null subliquidity  "{\"account\":\"27662\",\"tokenA\":\"10001\",\"tokenB\":\"10002\",\"liquidity_token\":\"100\"}" false true
 
 8,do swap
-call_contract  27447  316049304  null doswap  "{\"account\":\"27447\",\"tokenA\":\"10001\",\"quantityA\":\"100\",\"tokenB\":\"10002\"}" false true
+call_contract  27447  28182  null doswap  "{\"account\":\"27447\",\"tokenA\":\"10001\",\"quantityA\":\"100\",\"tokenB\":\"10002\"}" false true
 
 
 *****查询相关操作*****
 查询ABI:
-get_account testcont
+get_account init10
+get_account 28182
 
 查询合约有哪些表
-get_contract_tables testcont
+get_contract_tables init10
+get_contract_tables 28182
 
 查询已经存在的交易对
-get_table_rows_ex  testcont  dfliquidity {}
+get_table_rows_ex init10 dfliquidity {}
+get_table_objects  28182  28182 false dfliquidity 0 1000000000 100
 
 查询当前存在的流动性提供者详情
-get_table_rows_ex  testcont  defipool {}
+get_table_rows_ex init10 defipool {}
+get_table_objects  28182  28182 false defipool 0 1000000 100
 
 
 查询流动性变更历史
-get_table_rows_ex  testcont  liquiditylog {}
+get_table_rows_ex init10 liquiditylog {}
+get_table_objects  28182  28182 false liquiditylog 0 100000000 100
 
 查询swap交易历史
-get_table_rows_ex  testcont  swaplog {}
+get_table_rows_ex init10 swaplog {}
+get_table_objects  28182  28182 false swaplog 0 100000000 100
 
 
 查询资产
-get_table_rows  testcont  currencysta 0 1000000000
-get_table_rows_ex  testcont  currencysta {}
+get_table_rows init10 currencysta 0 1000000000 
+get_table_rows_ex init10 currencysta {}
+get_table_objects  28182  28182 false currencysta 0 100000000 100
 
 
 查询余额
-get_table_rows  testcont  account 0 1000000000
-get_table_rows_ex  testcont  account {}
-
+get_table_rows init10 account 0 1000000000 
+get_table_rows_ex init10 account {}
+get_table_objects  28182  28182 false account 0 100000000 100
 
 更新合约
-update_contract  testcont null ./swaptoken false true
+update_contract  init10 ./swaptoken false true
